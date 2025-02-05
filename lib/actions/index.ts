@@ -70,3 +70,20 @@ export async function getAllProducts() {
     throw new Error(`Failed to get all products: ${error.message}`);
   }
 }
+
+export async function getAllSimilarProducts(productId: string) {
+  try {
+    connectToDB();
+    const currentProduct = await ProductModel.findOne({ _id: productId });
+
+    if (!currentProduct) return null;
+
+    const similarProducts = await ProductModel.find({
+      _id: { $ne: productId },
+    }).limit(3);
+
+    return similarProducts;
+  } catch (error: any) {
+    throw new Error(`Failed to get all similar products: ${error.message}`);
+  }
+}
