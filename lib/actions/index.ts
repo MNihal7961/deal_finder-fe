@@ -1,10 +1,11 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { Product } from "@/types";
+import { Product, User } from "@/types";
 import ProductModel from "../models/product.model";
 import { connectToDB } from "../mongoose";
 import { scrapAmazonProduct } from "../scraper";
 import { getAveragePrice, getHighestPrice, getLowestPrice } from "../utils";
+import { generateEmailBody } from "../nodemailer";
 
 export async function scrapAndStoreProduct(productLink: string) {
   if (!productLink) return;
@@ -85,5 +86,25 @@ export async function getAllSimilarProducts(productId: string) {
     return similarProducts;
   } catch (error: any) {
     throw new Error(`Failed to get all similar products: ${error.message}`);
+  }
+}
+
+export async function adduserEmailToProduct(email: string, productId: string) {
+  try {
+    connectToDB();
+    const product = await ProductModel.findOne({ _id: productId });
+
+    if (!product) return;
+
+    const userExists = product.users.some((user: User) => user.email === email);
+
+    if (!userExists) {
+      product.users.push({ email });
+      await product.save();
+
+      const emailContent = generateEmailBody(product, "WELCOME");
+    }
+  } catch (error: any) {
+    throw new Error(`Failed to add user email to product: ${error.message}`);
   }
 }
